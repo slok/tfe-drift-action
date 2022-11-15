@@ -10,18 +10,75 @@
 
 ## Getting started
 
-TODO
+A very simple and example, execute every hour drift detection with a limit of plans:
+
+```yaml
+name: drift-detection
+
+on:
+  schedule:
+    - cron:  '0 * * * *' # Every hour.
+
+jobs:
+  drift-detection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slok/tfe-drift-action@v0.1.0
+        id: tfe-drift
+        with:
+          tfe-token: ${{ secrets.TFE_TOKEN }}
+          tfe-org: slok
+          limit-max-plans: 3
+```
 
 ## Input variables
 
-TODO
+- `tfe-token`: (Required) The Terraform API token.
+- `tfe-org`: (Required) The Terraform cloud/enterprise organization to execute the drift detections.
+- `not-before`: A time duration (e.g `1h`, `30m`) that will ignore the workspace if in the last specified duration, a drift detections has been already executed
+- `limit-max-plans`: An integer that will limit the number of drift detections executed per run.
+- `dry-run`: Will not execute any plan.
+- `no-error`: Boolean that when enabled, will make the github action not fail when there is any drift or a any drift detection plan fails (used when you want more control using the action output result).
 
 ## Output variables
 
-TODO
+- `result`: JSON output with a result.
 
 ## Usage
 
-TODO
+Using the JSON result to have more fine grain control.
 
-[tfe-drift]: https://github.com/slok/tfe-drift-action
+```yaml
+name: drift-detection
+
+on:
+  schedule:
+    - cron:  '0 3 * * *' # Every day at 3am.
+
+jobs:
+  drift-detection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slok/tfe-drift-action@v0.1.0
+        id: tfe-drift
+        with:
+          tfe-token: ${{ secrets.TFE_TOKEN }}
+          tfe-org: slok
+          no-error: true
+
+      - if: fromJSON(steps.tfe-drift.outputs.result).drift
+        run: |
+          # Do whatever...
+
+          echo "Drift detected"
+          exit 1
+
+      - if: fromJSON(steps.tfe-drift.outputs.result).drift_detection_plan_error
+        run: |
+          # Do whatever...
+
+          echo "Drift detection plan failed"
+          exit 1
+```
+
+[tfe-drift]: https://github.com/slok/tfe-drift
