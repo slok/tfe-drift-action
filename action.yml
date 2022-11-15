@@ -22,7 +22,17 @@ inputs:
   no-error:
     description: "If enabled will not return an error on drift or drift detection failed plans."
     default: "false"
-
+  debug:
+    description: "Enables debug mode."
+    default: "false"
+  include-names:
+    description: "String of comma separated regexes, that will exclude the workspaces that don't match these (e.g: dns,kubernetes-*,production-*)."
+  exclude-names:
+    description: "String of comma separated regexes, that will exclude the workspaces that match these (e.g: dns,kubernetes-*,production-*)."
+  include-tags:
+    description: "String of comma separated tags, that will exclude the workspaces that don't match these tags (e.g: production,infrastructure)."
+  exclude-tags:
+    description: "String of comma separated tags, that will exclude the workspaces that match these (e.g: production,infrastructure)."
 outputs:
   result:
     description: "Result of the drift"
@@ -34,7 +44,7 @@ runs:
     - name: Install tfe-drift
       shell: bash
       env:
-        TFE_DRIFT_VERSION: v0.1.0
+        TFE_DRIFT_VERSION: v0.2.0
       run: curl -L https://github.com/slok/tfe-drift/releases/download/${TFE_DRIFT_VERSION}/tfe-drift-linux-amd64 > /tmp/tfe-drift && chmod a+x /tmp/tfe-drift
     - id: tfe-drift-run
       name: Run drift detection
@@ -45,7 +55,12 @@ runs:
         TFE_DRIFT_LIMIT_MAX_PLANS: ${{ inputs.limit-max-plans }}
         TFE_DRIFT_DRY_RUN: ${{ inputs.dry-run }}
         TFE_DRIFT_NOT_BEFORE: ${{ inputs.not-before }}
-        TFE_DRIFT_DISABLE_DRIFT_PLAN_EXITCODES: ${{ inputs.no-error}}
+        TFE_DRIFT_DISABLE_DRIFT_PLAN_EXITCODES: ${{ inputs.no-error }}
+        TFE_DRIFT_INCLUDE_NAME: ${{ inputs.include-names }}
+        TFE_DRIFT_EXCLUDE_NAME: ${{ inputs.exclude-names }}
+        TFE_DRIFT_INCLUDE_TAG: ${{ inputs.include-tags }}
+        TFE_DRIFT_EXCLUDE_TAG: ${{ inputs.exclude-tags }}
+        TFE_DRIFT_DEBUG: ${{ inputs.debug }}
       run: |
         # We want to get the result too, so we don't want to fail immediately...
         set +e
@@ -59,5 +74,18 @@ runs:
         echo "result<<${delimiter}" >> "${GITHUB_OUTPUT}"
         echo "${result}" >> "${GITHUB_OUTPUT}"
         echo "${delimiter}" >> "${GITHUB_OUTPUT}"
+
+        # Summary.
+        echo "## Drift detection result" >> ${GITHUB_STEP_SUMMARY}
+        echo "" >> ${GITHUB_STEP_SUMMARY}
+        echo "${result}" | jq -r '.workspaces[] | select(.drift == true) | ":warning: **" + .name + "**: Drift. More information [here]("+ .drift_detection_run_url + ")." ' >> ${GITHUB_STEP_SUMMARY}
+        echo "${result}" | jq -r '.workspaces[] | select(.drift_detection_plan_error == true) | ":heavy_multiplication_x: **" + .name + "**: Drift detection failed. More information [here]("+ .drift_detection_run_url + ")." ' >> ${GITHUB_STEP_SUMMARY}
+        echo "${result}" | jq -r '.workspaces[] | select((.drift == false) and .drift_detection_plan_error == false) | ":heavy_check_mark: **" + .name + "**: No drift. More information [here]("+ .drift_detection_run_url + ")." ' >> ${GITHUB_STEP_SUMMARY}
+        echo "" >> ${GITHUB_STEP_SUMMARY}
+
+        # Setup GH action annotations (Disabled in favor of summary).
+        #echo "${result}" | jq -r '.workspaces[] | select((.drift == false) and .drift_detection_plan_error == false) | "::notice title=No Drift: " + .name + ":: " + "More information: " + .drift_detection_run_url'
+        #echo "${result}" | jq -r '.workspaces[] | select(.drift == true) | "::warning title=Drift: " + .name + ":: " + "More information: " + .drift_detection_run_url'
+        #echo "${result}" | jq -r '.workspaces[] | select(.drift_detection_plan_error == true) | "::error title=Drift detection failed: " + .name + ":: " + "More information: " + .drift_detection_run_url'
 
         exit "${TFE_DRIFT_EXEC_EXIT_CODE}"

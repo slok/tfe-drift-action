@@ -39,10 +39,21 @@ jobs:
 - `limit-max-plans`: An integer that will limit the number of drift detections executed per run.
 - `dry-run`: Will not execute any plan.
 - `no-error`: Boolean that when enabled, will make the github action not fail when there is any drift or a any drift detection plan fails (used when you want more control using the action output result).
+- `debug`: Boolean that will enable debug mode.
+- `include-names`: String of comma separated regexes, that will exclude the workspaces that don't match these (e.g: dns,kubernetes-*,production-*).
+- `exclude-names`: String of comma separated regexes, that will exclude the workspaces that match these (e.g: dns,kubernetes-*,production-*).
+- `include-tags`: String of comma separated tags, that will exclude the workspaces that don't match these tags (e.g: production,infrastructure).
+- `exclude-tags`: String of comma separated tags, that will exclude the workspaces that match these (e.g: production,infrastructure).
 
 ## Output variables
 
 - `result`: JSON output with a result.
+
+## Drift detection summary
+
+When the action is executed, at the end it will set a drift detection summary with the link to all the plans:
+
+![Drift detection result job summary](docs/img/job-summary.png)
 
 ## Usage
 
