@@ -1,0 +1,10 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  todo:
+    name: TODO
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 0
