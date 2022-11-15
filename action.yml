@@ -1,0 +1,63 @@
+name: Terraform cloud/enterprise drift detection
+description: Execute tfe-drift
+author: slok
+branding:
+  icon: alert-circle
+  color: orange
+
+inputs:
+  tfe-token:
+    description: "The Terraform cloud/enterprise token"
+    required: true
+  tfe-org:
+    description: "The Terraform cloud/enterprise organization"
+    required: true
+  not-before:
+    description: "Duration that will filter the workspaces that executed a drift detection plan before before this duration (e.g: 1h, 15m, 72h)."
+  limit-max-plans:
+    description: "The maximum drift detection plans that will be executed."
+  dry-run:
+    description: "Execute in dry-run mode."
+    default: "false"
+  no-error:
+    description: "If enabled will not return an error on drift or drift detection failed plans."
+    default: "false"
+
+outputs:
+  result:
+    description: "Result of the drift"
+    value: ${{ steps.tfe-drift-run.outputs.result }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install tfe-drift
+      shell: bash
+      env:
+        TFE_DRIFT_VERSION: v0.1.0
+      run: curl -L https://github.com/slok/tfe-drift/releases/download/${TFE_DRIFT_VERSION}/tfe-drift-linux-amd64 > /tmp/tfe-drift && chmod a+x /tmp/tfe-drift
+    - id: tfe-drift-run
+      name: Run drift detection
+      shell: bash
+      env:
+        TFE_DRIFT_TFE_TOKEN: ${{ inputs.tfe-token }}
+        TFE_DRIFT_TFE_ORGANIZATION: ${{ inputs.tfe-org }}
+        TFE_DRIFT_LIMIT_MAX_PLANS: ${{ inputs.limit-max-plans }}
+        TFE_DRIFT_DRY_RUN: ${{ inputs.dry-run }}
+        TFE_DRIFT_NOT_BEFORE: ${{ inputs.not-before }}
+        TFE_DRIFT_DISABLE_DRIFT_PLAN_EXITCODES: ${{ inputs.no-error}}
+      run: |
+        # We want to get the result too, so we don't want to fail immediately...
+        set +e
+
+        # Drift detection.
+        result=$(/tmp/tfe-drift run -o json)
+        TFE_DRIFT_EXEC_EXIT_CODE=$?
+        
+        # Store output.
+        delimiter="$(openssl rand -hex 8)"
+        echo "result<<${delimiter}" >> "${GITHUB_OUTPUT}"
+        echo "${result}" >> "${GITHUB_OUTPUT}"
+        echo "${delimiter}" >> "${GITHUB_OUTPUT}"
+
+        exit "${TFE_DRIFT_EXEC_EXIT_CODE}"
