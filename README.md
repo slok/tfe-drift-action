@@ -57,6 +57,33 @@ When the action is executed, at the end it will set a drift detection summary wi
 
 ## Usage
 
+### Tagged workspaces
+
+Only drift detect the tagged workspaces with `enable-drift-detection`
+
+```yaml
+name: Drift detection
+
+on:
+  schedule:
+    - cron:  '0 * * * *' # Every hour.
+
+jobs:
+  drift-detection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Drift detection
+        uses: slok/tfe-drift-action@v0.3.0
+        id: tfe-drift
+        with:
+          tfe-token: ${{ secrets.TFE_TOKEN }}
+          tfe-org: myorg
+          include-tags: "enable-drift-detection"
+          limit-max-plans: 5
+```
+
+### JSON result for grain control
+
 Using the JSON result to have more fine grain control.
 
 ```yaml
@@ -90,6 +117,66 @@ jobs:
 
           echo "Drift detection plan failed"
           exit 1
+```
+
+### Slack notification on drift
+
+Sending a slack notification when there is are drifted workspaces.
+
+![Slack drift notification](docs/img/slack.png)
+
+```yaml
+name: Drift detection
+
+on:
+  schedule:
+    - cron:  '*/15 * * * *' # Every 15m.
+
+jobs:
+  drift-detection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Drift detection
+        uses: slok/tfe-drift-action@v0.3.0
+        id: tfe-drift
+        with:
+          tfe-token: ${{ secrets.TFE_TOKEN }}
+          tfe-org: myorg
+          limit-max-plans: 3
+          no-error: true
+
+      - name: Prepare slack message
+        id: slack-message
+        if: ${{ !fromJSON(steps.tfe-drift.outputs.result).ok }}
+        run: |
+          # Store message as output.
+          delimiter="$(openssl rand -hex 8)"
+          echo "message<<${delimiter}" >> "${GITHUB_OUTPUT}"
+
+          # Add an "invisible" character to force a new line and then set the information.
+          echo '‎' >> "${GITHUB_OUTPUT}"
+          echo '${{ steps.tfe-drift.outputs.result }}' | jq -r '.workspaces[] | select(.drift == true) | ":warning: *" + .name + "*: Drift. More information <"+ .drift_detection_run_url + "|here>."'  >> "${GITHUB_OUTPUT}"
+          echo '${{ steps.tfe-drift.outputs.result }}' | jq -r '.workspaces[] | select(.drift_detection_plan_error == true) | ":x: *" + .name + "*: Drift detection failed. More information <"+ .drift_detection_run_url + "|here>."'  >> "${GITHUB_OUTPUT}"
+          echo "" >> "${GITHUB_OUTPUT}"
+          echo "" >> "${GITHUB_OUTPUT}"
+          echo "Full log <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|here>." >> "${GITHUB_OUTPUT}"
+
+          echo "${delimiter}" >> "${GITHUB_OUTPUT}"
+
+      - name: Slack Notification
+        if: ${{ !fromJSON(steps.tfe-drift.outputs.result).ok }}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_CHANNEL: terraform-drifts
+          SLACK_COLOR: warning
+          SLACK_ICON: https://i.imgur.com/qBAZZYs.png
+          SLACK_USERNAME: "Terraform drift detector"
+          SLACK_MESSAGE: "${{ steps.slack-message.outputs.message }}"
+          SLACK_TITLE: ":terraform: Drift detected!"
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_FOOTER: ""
+          MSG_MINIMAL: "true"
+
 ```
 
 [tfe-drift]: https://github.com/slok/tfe-drift
