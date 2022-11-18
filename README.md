@@ -23,11 +23,11 @@ jobs:
   drift-detection:
     runs-on: ubuntu-latest
     steps:
-      - uses: slok/tfe-drift-action@v0.2.0
+      - uses: slok/tfe-drift-action@v0.3.0
         id: tfe-drift
         with:
           tfe-token: ${{ secrets.TFE_TOKEN }}
-          tfe-org: slok
+          tfe-org: myorg
           limit-max-plans: 3
 ```
 
@@ -70,11 +70,11 @@ jobs:
   drift-detection:
     runs-on: ubuntu-latest
     steps:
-      - uses: slok/tfe-drift-action@v0.2.0
+      - uses: slok/tfe-drift-action@v0.3.0
         id: tfe-drift
         with:
           tfe-token: ${{ secrets.TFE_TOKEN }}
-          tfe-org: slok
+          tfe-org: myorg
           no-error: true
 
       - if: fromJSON(steps.tfe-drift.outputs.result).drift

@@ -44,7 +44,7 @@ runs:
     - name: Install tfe-drift
       shell: bash
       env:
-        TFE_DRIFT_VERSION: v0.2.0
+        TFE_DRIFT_VERSION: v0.3.0
       run: curl -L https://github.com/slok/tfe-drift/releases/download/${TFE_DRIFT_VERSION}/tfe-drift-linux-amd64 > /tmp/tfe-drift && chmod a+x /tmp/tfe-drift
     - id: tfe-drift-run
       name: Run drift detection
