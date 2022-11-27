@@ -23,7 +23,7 @@ jobs:
   drift-detection:
     runs-on: ubuntu-latest
     steps:
-      - uses: slok/tfe-drift-action@v0.3.0
+      - uses: slok/tfe-drift-action@v0.4.0
         id: tfe-drift
         with:
           tfe-token: ${{ secrets.TFE_TOKEN }}
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Drift detection
-        uses: slok/tfe-drift-action@v0.3.0
+        uses: slok/tfe-drift-action@v0.4.0
         id: tfe-drift
         with:
           tfe-token: ${{ secrets.TFE_TOKEN }}
@@ -97,7 +97,7 @@ jobs:
   drift-detection:
     runs-on: ubuntu-latest
     steps:
-      - uses: slok/tfe-drift-action@v0.3.0
+      - uses: slok/tfe-drift-action@v0.4.0
         id: tfe-drift
         with:
           tfe-token: ${{ secrets.TFE_TOKEN }}
@@ -137,7 +137,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Drift detection
-        uses: slok/tfe-drift-action@v0.3.0
+        uses: slok/tfe-drift-action@v0.4.0
         id: tfe-drift
         with:
           tfe-token: ${{ secrets.TFE_TOKEN }}
